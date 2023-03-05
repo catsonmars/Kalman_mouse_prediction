@@ -24,7 +24,7 @@ class init_window:
         self.y_Asteroid0 = 250
 
         #kalman stuff
-        self.kalman_prtcles =[[223,5],[227,167],[268,6],[282,267],[303,36],[199,456],[235,526],[262,236]] # 8 particles
+        self.kalman_prtcles =[[223,5]] # 8 particles
         self.state_Mtrx = [0, 0, 0, 0 ]#x,Vx, y, Vy
         self.motion_sig = 2
         self.measur_sig = 4
@@ -47,31 +47,18 @@ class init_window:
         self.screen = pygame.display.set_mode((1240,720))
 
 
-    def draw_tracking_dots(self, xCoord, yCoord, rot, loc):
-        #self.screen.fill(self.white)  # draw background
-        # draws mouse cursor below####
-        #self.screen.blit(pygame.transform.rotate(self.asteroid, rot),
-        #                 (loc[0] + self.offset[0], loc[1] + self.offset[1]))
-        for i in range(len(self.kalman_prtcles)): #Draw particles
-            self.kalman_prtcles[i][0] = xCoord  #random.randint(x+25, x+25) #[i][j0][j1]
-            #print("kal X", self.kalman_prtcles[i][0])
-            self.kalman_prtcles[i][1] = yCoord#random.randint(y+25, y+25)
-            #print("kal y", self.kalman_prtcles[i][1])
-            self.screen.blit(self.prticle_pixel,(self.kalman_prtcles[i][0],self.kalman_prtcles[i][1]))
-            #print("drawing ", i)
-            #    self.kalman_prtcles[x][y] = random.randint(1, 21)
+
+
 
     ################################################
-    #Input: surface is a pygame object that is used to output graphics. x,y,
-    # x, and y are the kalman dot coordinates
+    #Input: surface is a pygame object that is used to output graphics.
     # loc is for mouse [x,y] coordinates
     # rot is used for mouse
     #draws objects to screen. Also maintains 60 FPS
-
-    def draw(self,surface,x,y,rot,loc):
+    def draw_asteroid(self,rot,loc):
         self.screen.fill(self.white) #draw background
         # draws mouse cursor below####
-        self.screen.blit(pygame.transform.rotate(self.asteroid, rot),(loc[0] + self.offset[0], loc[1] + self.offset[1]) )#
+        self.screen.blit(pygame.transform.rotate(self.asteroid, rot),(loc[0] + self.offset[0], loc[1] + self.offset[1]) )
 
         #ensure 60 fps
         start = timer()
@@ -86,14 +73,19 @@ class init_window:
         start = 25
         stop = 57
         #self.draw_tracking_dots()
-        if self.drawFlag ==1:
-            for i in range(len(self.kalman_prtcles)):  # Draw particles
-                self.kalman_prtcles[i][0] = x  # random.randint(x+25, x+25) #[i][j0][j1]
-                # print("kal X", self.kalman_prtcles[i][0])
-                self.kalman_prtcles[i][1] = y  # random.randint(y+25, y+25)
-                # print("kal y", self.kalman_prtcles[i][1])
-                self.screen.blit(self.prticle_pixel, (self.kalman_prtcles[i][0], self.kalman_prtcles[i][1]))
 
+
+
+    # x, and y are the kalman dot coordinates
+    def draw_tracking_dot(self,dot_x,dot_y,):
+        for i in range(len(self.kalman_prtcles)):  # Draw particles
+            print("running loop", i)
+            self.kalman_prtcles[i][0] = dot_x
+            # print("kal X", self.kalman_prtcles[i][0])
+            self.kalman_prtcles[i][1] = dot_y
+            # print("kal y", self.kalman_prtcles[i][1])
+            # Draw tracking dot
+            self.screen.blit(self.prticle_pixel, ( self.kalman_prtcles[0][0], self.kalman_prtcles[0][1]))
 
     #################  kalman  #########################
     def update(self, mean1, var1, mean2, var2):
@@ -113,11 +105,10 @@ class init_window:
         pygame.init()
         logo = pygame.image.load(self.file)
         pygame.display.set_icon(logo)
-        pygame.display.set_caption("Cs7638 kalman filter")
+        pygame.display.set_caption("kalman filter")
 
         while self.runProgram:
-            #event handling
-            for event in pygame.event.get():
+            for event in pygame.event.get(): #event handling
                 if event.type == pygame.QUIT:
                     self.runProgram = False
 
@@ -130,45 +121,34 @@ class init_window:
             locate = [mouseX0, mouseY0]
 
             ########### draw screen #################
-            self.draw(self.screen,self.muX,self.muX,rot,locate)
-            self.drawFlag = 1
+            self.draw_asteroid(rot,locate)
             pygame.display.update()
             ########### Mouse Speed ##################
 
             mousEndT = timer()+.3
             print("mousEndT",mousEndT)
             mouseX1, mouseY1 =pygame.mouse.get_rel()
-            #print("mouseX1, mouseY1", mouseX1, mouseY1)
-            #print("mousEndT", mousEndT)
-
-            #self.mouseSpeed =(( (mouseX1-mouseX0 )**2 + (mouseY1- mouseY0 )**2 )**(1/2))/(mouseT0-mousEndT) #distance formula
             self.xDiff = (mouseX1 - mouseX0)/19226
             self.yDiff = (mouseY1 - mouseY0)/19226
 
             self.mouseSpeedX =((mouseX1-mouseX0)/ (mouseT0-mousEndT))/5
-            print("self.mouseSpeedX ",self.mouseSpeedX )
             self.mouseSpeedY = ((mouseY1 - mouseY0) / (mouseT0 - mousEndT))/5
-            #print(" self.mouseSpeedX ", self.mouseSpeedX   )
+
             ############# kalman #####################
-
-            #self.state_Mtrx = [self.displacement,self.measur_sig,self.muX ,self.sigX]
-            #self.state_Mtrx = [mouseX1,self.mouseSpeedX,mouseY1,self.mouseSpeedY]  #using the most recent mouse speed
-
+            # muX and muY are measurement update sigX and sigY are errors
+            #                                     mean1,       var1,            mean2,  var2)
             [self.muX, self.sigX] = self.update(self.xDiff, self.measur_sig, self.muX, self.sigX)
-            print("muX difference ", self.muX )
+            #print("muX difference ", self.muX )
+            #                                     mean1,       var1,            mean2,  var2)
             [self.muX, self.sigX] = self.predict(self.muX, self.measur_sig, self.mouseSpeedX, self.motion_sig)
             print("muX predict(motion) ", self.muX)
             [self.muY, self.sigY] = self.update(self.yDiff, self.measur_sig, self.muY, self.sigY)
             [self.muY, self.sigY] = self.predict(self.muY, self.measur_sig, self.mouseSpeedY, self.motion_sig)
-            #[mu, sig] = predict(mu, sig, motion[x], motion_sig)
-            #print [mu, sig]
+
+            ########### draw tracking dot#############
+            self.draw_tracking_dot(self.muX,self.muY)
 
 
-
-            #print("self.muX, self.sigX", self.muX, self.sigX)
-            self.draw(self.screen, self.muX, self.muY, rot, locate)
-            #self.draw_tracking_dots(self.muX,self.muX,rot,locate)
-            #muX and muY are measurement update sigX and sigY are errors
             pygame.display.update()
 
 if __name__ == "__main__":
